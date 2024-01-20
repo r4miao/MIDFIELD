@@ -1,0 +1,448 @@
+---
+title: "The MIDFIELD Exploratory Analysis Summary"
+author: "Miao Li"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+format: html
+editor: visual
+execute: 
+  echo: FALSE
+---
+
+## 
+
+```{r }
+#| message: FALSE
+#| warning: FALSE
+library(networkD3)
+library(htmlwidgets)
+library(htmltools)
+library(manipulateWidget)
+library(data.table)
+library(readr)
+library(dplyr)
+library(haven)
+library(ggplot2)
+library(tidyverse)
+library(gganimate)
+library(ggthemes)
+library(gifski)
+
+# A connection data frame is a list of flows with intensity for each flow
+major <- read_csv("Data/R/major_in_out.csv")
+major <- setDT(major)
+major$mjchange <- ifelse(major$entermajor==major$outmajor, "No", "Yes")
+```
+
+## Data Contribution By Institution and Year
+
+NOTE:
+
+-   Three campuses of the Embry-Riddle Aeronautical University - Worldwide, Daytona Beach, and Prescott - were combined into one single institution: Embry-Riddle Aeronautical Univ.
+
+-   The matriculation year variable was constructed based on the `term_enter` variable in the `student` data set.
+
+```{r}
+# Stacked bar graph by Year and Institution: begin #
+major %>% select(id, institution, year_begin, stem) %>%  
+  mutate(institution = case_when(
+    startsWith(institution, "Embry") ~ "Embry-Riddle Univ.",
+    .default = institution 
+  )) %>%   
+  group_by(year_begin) %>% mutate(tot = n(),
+                                  tot_stem = sum(stem == "Yes")) %>% arrange(year_begin) %>% ungroup() %>% 
+  group_by(year_begin, institution) %>% mutate(institution_tot = n(), Institutions = as.factor(institution),
+                                               institution_tot_stem = sum(stem == "Yes")) %>% slice(1) %>% 
+  ggplot(., aes(y=institution_tot, x=year_begin, fill=Institutions)) + 
+  geom_bar(position="stack", stat="identity", alpha = 0.8) +
+  labs( x = "Year", y = "Number of Students")  +  
+  geom_text(
+    aes(y = tot, label = tot),
+    vjust = -0.5, size=2  ) +
+  labs(title = "Data Contribution by Year and Institution") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())  
+# Stacked bar graph by Year and Institution: end #
+```
+
+## Data Contribution By Major and Year: All Universities
+
+```{r}
+# Stacked bar graph by Year and Major for ALL University: begin #
+major %>% select(id, institution, entermajor, year_begin, stem) %>%     
+  group_by(year_begin) %>% mutate(yrtot = n()) %>% arrange(year_begin) %>% ungroup() %>% 
+  group_by(year_begin, entermajor) %>% mutate(major_yr_tot = n(), Field = factor(entermajor)) %>% slice(1) %>% 
+  ggplot(aes(y=major_yr_tot, x=year_begin, fill=Field)) + 
+  geom_bar(position="stack", stat="identity", alpha=.8) +
+  labs( x = "Year", y = "Number of Students")  +  
+  geom_text(
+    aes(y = yrtot, label = yrtot),
+    vjust = -0.5, size=2  ) +
+  labs(title = "Data Contribution by Year and Major") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) 
+# Stacked bar graph by Year and Major for ALL University: end #
+```
+
+## Data Contribution By Major and Year: Clemson University
+
+```{r}
+# Stacked bar graph by Year and Major for Clemson University: begin #
+major %>% select(id, institution, entermajor, year_begin, stem) %>% filter(institution=="Clemson University" & year_begin <2005) %>%     
+  group_by(year_begin) %>% mutate(yrtot = n()) %>% arrange(year_begin) %>% ungroup() %>% 
+  group_by(year_begin, entermajor) %>% mutate(major_yr_tot = n(), Field = factor(entermajor)) %>% slice(1) %>% 
+  ggplot(aes(y=major_yr_tot, x=year_begin, fill=Field)) + 
+  geom_bar(position="stack", stat="identity", alpha=.8) +
+  labs( x = "Year", y = "Number of Students")  +  
+  geom_text(
+    aes(y = yrtot, label = yrtot),
+    vjust = -0.5, size=2  ) +
+  labs(title = "Data Contribution by Year and Major: Clemson University") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) 
+# Stacked bar graph by Year and Major for Clemson University: end #
+```
+
+## Racing Bar Chart of Top 10 Majors Over Time: Selected Universities
+
+### I: Clemson University: 1987-2004
+
+```{r}
+#| message: false
+#| warning: FALSE
+# First graph for Clemson University
+sclname <- "Clemson University" 
+
+myscl <- major[institution=="Clemson University" & year_begin<2005, .(id, entermajor, CIP2matriName, year_begin)]
+myscl_agg <- myscl[, .N, by=c('CIP2matriName', 'year_begin')][order(year_begin, CIP2matriName)]
+
+myscl_agg <- myscl_agg %>% group_by(year_begin) %>% 
+  mutate(N= as.numeric(N),
+         year_begin = as.numeric(year_begin),
+         rank = rank(-N),
+         Value_rel = N/N[rank==1],
+         Value_lbl = paste0(" ", N)) %>%
+  group_by(CIP2matriName) %>%
+  filter(rank<=10) %>% ungroup()  
+
+staticplot = ggplot(myscl_agg, aes(rank, group = CIP2matriName,
+                                   fill = as.factor(CIP2matriName), color = as.factor(CIP2matriName))) +
+  geom_tile(aes(y = N/2,
+                height = N,
+                width = 0.9), alpha = 0.8, color = NA) +
+  geom_text(aes(y = 0, label = paste(CIP2matriName, " ")), vjust = 0.2, hjust = 1, size=5) +
+  geom_text(aes(y = N, label = Value_lbl, hjust=0)) +
+  coord_flip(clip = "off", expand = FALSE) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_reverse() +
+  guides(none) +
+  theme(axis.line=element_blank(),
+        axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        legend.position="none",
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        panel.grid.major.x = element_line( size=.1, color="grey" ),
+        panel.grid.minor.x = element_line( size=.1, color="grey" ),
+        plot.title=element_text(size=25, hjust=0.5, face="bold", colour="grey", vjust=0), 
+        plot.subtitle=element_text(size=18, hjust=0.5, vjust=1, face="italic", color="grey"),
+        plot.caption =element_text(size=18, hjust=0.5, face="italic", color="grey"),
+        plot.background=element_blank(),
+        plot.margin = margin(2,2, 2, 15, "cm"))
+
+
+anim = staticplot + transition_states(year_begin, transition_length = 8, state_length = 8) +
+  view_follow(fixed_x = TRUE)  +
+  labs(title = 'Number of Students By Major per Year : {closest_state}',
+       subtitle  =  "{sclname}",
+       caption  = "Data Source: MIDFIELD")
+
+animate(anim, 100, fps = 30, duration = 30, width = 1200, height = 1500)
+
+```
+
+### II: Purdue University: 1993-2011
+
+```{r}
+#| message: FALSE
+#| warning: FALSE
+# Second graph for Purdue University
+myscl <- major[institution=="Purdue University" & year_begin<2012 & year_begin>1992, .(id, entermajor, CIP2matriName, year_begin)]
+myscl_agg <- myscl[, .N, by=c('CIP2matriName', 'year_begin')][order(year_begin, CIP2matriName)]
+
+myscl_agg <- myscl_agg %>% group_by(year_begin) %>% 
+  mutate(N= as.numeric(N),
+         year_begin = as.numeric(year_begin),
+         rank = rank(-N),
+         Value_rel = N/N[rank==1],
+         Value_lbl = paste0(" ", N)) %>%
+  group_by(CIP2matriName) %>%
+  filter(rank<=10) %>% ungroup()  
+
+staticplot_p = ggplot(myscl_agg, aes(rank, group = CIP2matriName,
+                                   fill = as.factor(CIP2matriName), color = as.factor(CIP2matriName))) +
+  geom_tile(aes(y = N/2,
+                height = N,
+                width = 0.9), alpha = 0.8, color = NA) +
+  geom_text(aes(y = 0, label = paste(CIP2matriName, " ")), vjust = 0.2, hjust = 1, size=5) +
+  geom_text(aes(y = N, label = Value_lbl, hjust=0)) +
+  coord_flip(clip = "off", expand = FALSE) +
+  scale_y_continuous(labels = scales::comma) +
+  scale_x_reverse() +
+  guides(none) +
+  theme(axis.line=element_blank(),
+        axis.text.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        legend.position="none",
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid.major=element_blank(),
+        panel.grid.minor=element_blank(),
+        panel.grid.major.x = element_line( size=.1, color="grey" ),
+        panel.grid.minor.x = element_line( size=.1, color="grey" ),
+        plot.title=element_text(size=25, hjust=0.5, face="bold", colour="grey", vjust=0),
+        plot.subtitle=element_text(size=18, hjust=0.5, vjust=1, face="italic", color="grey"),
+        plot.caption =element_text(size=18, hjust=0.5, face="italic", color="grey"),
+        plot.background=element_blank(),
+        plot.margin = margin(2,2, 2, 15, "cm"))
+
+
+anim_P = staticplot_p + transition_states(year_begin, transition_length = 8, state_length = 8) +
+  view_follow(fixed_x = TRUE)  +
+  labs(title = 'Number of Students By Major per Year : {closest_state}',
+       subtitle  =  "Purdue University",
+       caption  = "Data Source: MIDFIELD")
+
+animate(anim_P, 100, fps = 30, duration = 30, width = 1200, height = 1500)
+
+```
+
+## Sankey Diagram of Major Flow: All Year Aggregated
+
+```{r}
+#| message: FALSE
+#| warning: FALSE
+sankey <-major %>% filter(complete.cases(entermajor,outmajor)) %>% 
+  group_by(entermajor, outmajor) %>% 
+  mutate(num = n(),
+         entermajor=factor(entermajor), 
+         outmajor=factor(outmajor)) %>% 
+  select(num, entermajor, outmajor) %>% 
+  slice(1)
+  
+sankey$outmajor <- paste0(sankey$outmajor, " ")
+
+# From these flows we need to create a node data frame: it lists every entities involved in the flow
+nodes <- data.frame(
+  name=c(as.character(sankey$entermajor), 
+         as.character(sankey$outmajor)) %>% unique()
+)
+
+# With networkD3, connection must be provided using id, not using real name like in the links dataframe.. So we need to reformat it.
+sankey$IDsource <- match(sankey$entermajor, nodes$name)-1 
+sankey$IDtarget <- match(sankey$outmajor, nodes$name)-1
+
+# Make the Network
+p1 <- sankeyNetwork(Links = sankey, Nodes = nodes,
+                   Source = "IDsource", Target = "IDtarget",
+                   Value = "num", NodeID = "name", width =750, height = 750,
+                   margin = list(right = 65, left=45),
+                   sinksRight=TRUE, fontSize= 14, nodeWidth = 45)
+p1 <- htmlwidgets::onRender(p1, '
+      function(el) { 
+        var cols_x = this.sankey.nodes().map(d => d.x).filter((v, i, a) => a.indexOf(v) === i);
+        var labels = ["Major at Matriculation", "Major at Graduation"];
+        cols_x.forEach((d, i) => {
+          d3.select(el).select("svg")
+            .append("text")
+            .attr("x", d)
+            .attr("y", 12)
+            .text(labels[i]);
+        })
+      }
+    ')
+
+p2 <- htmlwidgets::appendContent(p1, 
+                                   htmltools::tags$p("Data source: MIDFIELD", style="color:#0B7033; text-align:left;"))
+
+p2
+```
+
+NOTE: Hover your cursor over the flow to see the numbers.
+
+```{r}
+#| message: FALSE
+#| warning: FALSE
+############  5 category Sankey diagram  - begin #####################
+sankey5 <-major %>% filter(complete.cases(entermajor5,outmajor5)) %>% 
+  group_by(entermajor5, outmajor5) %>% 
+  mutate(num = n(),
+         entermajor5=factor(entermajor5), 
+         outmajor5=factor(outmajor5)) %>% 
+  select(num, entermajor5, outmajor5) %>% 
+  slice(1)
+
+
+sankey5$outmajor5 <- paste0(sankey5$outmajor5, " ")
+
+# From these flows we need to create a node data frame: it lists every entities involved in the flow
+nodes5 <- data.frame(
+  name=c(as.character(sankey5$entermajor5), 
+         as.character(sankey5$outmajor5)) %>% unique()
+)
+
+# With networkD3, connection must be provided using id, not using real name like in the links dataframe.. So we need to reformat it.
+sankey5$IDsource <- match(sankey5$entermajor5, nodes5$name)-1 
+sankey5$IDtarget <- match(sankey5$outmajor5, nodes5$name)-1
+
+# Make the Network
+s5p1<- sankeyNetwork(Links = sankey5, Nodes = nodes5,
+                     Source = "IDsource", Target = "IDtarget",
+                     Value = "num", NodeID = "name", width =750, height = 750,margin = list(right = 65, left=45),
+                     sinksRight=TRUE, fontSize= 14, nodeWidth = 45) 
+s5p2 <- htmlwidgets::onRender(s5p1, '
+      function(el) { 
+        var cols_x = this.sankey.nodes().map(d => d.x).filter((v, i, a) => a.indexOf(v) === i);
+        var labels = ["Major at Matriculation", "Major at Graduation"];
+        cols_x.forEach((d, i) => {
+          d3.select(el).select("svg")
+            .append("text")
+            .attr("x", d)
+            .attr("y", 12)
+            .text(labels[i]);
+        })
+      }
+    ')
+
+s5p2 <- htmlwidgets::prependContent(s5p2, 
+                                    htmltools::tags$h1("Sankey Diagram of Major Flow: All Year Aggregated", style="position: top; color:#974D14; text-align:left;"),
+                                    htmltools::tags$p("NOTE: Fewer categories; Business and Economics Combined", style="color:#0B7033; text-align:left;"))
+s5p2
+# then save to html webpage
+#############  5 category Sankey diagram  - end  ##################
+```
+
+NOTE: Hover your cursor over the flow to see the numbers.
+
+## Major at Matriculation by Race/Citizenship: All Year Aggregated
+
+```{r}
+tb <- xtabs(~ entermajor + race, data = major)
+tb <- prop.table(tb, margin = 2)
+tb <- as.data.frame(tb)
+# plot bar graph
+tb %>%   
+  ggplot(aes(x=race, y=Freq, fill=entermajor)) +
+  geom_bar(position = 'dodge', stat = "identity", alpha=.8)  +
+  labs(title = "Proportion of Students Matriculated in Different Majors",
+       x = "Major at Matriculation") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_clean() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+## Major at Matriculation by Race/Citizenship: By Year Animation
+
+### 1989 - 2010
+
+```{r}
+tb <- xtabs(~ entermajor + race + year_begin, data = major)
+tb <- prop.table(tb, margin = c(2,3))
+tb <- as.data.frame(tb)
+tb$year_begin <- as.integer(as.character(tb$year_begin))
+
+# plot bar graph
+tb %>%  filter(year_begin<2011 & year_begin>1988) %>% 
+  ggplot(aes(x=race, y=Freq, fill=entermajor)) +
+  geom_bar(position = 'dodge', stat = "identity", alpha=.8)  +
+  labs(title = "Proportion of Students Matriculated in Different Majors: {frame_time}",
+       subtitle = "By Race/Citizenship",
+       x = "Race/Citizenship") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_clean() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  +
+  transition_time(year_begin) +
+  enter_fade() 
+```
+
+## STEM Major Retention by Race/Citizenship: All Year Aggregated
+
+```{r}
+tb <- xtabs(~ outmajor + entermajor + race, data = major)
+tb <-prop.table(tb, margin = c(2,3))
+#tb <-round(prop.table(tb, margin = c(2,3)),2)  # the proportion of outmajor for "entermajor X race"
+#dimnames(tb)
+tb2 <- cbind("White"         = tb[,'STEM',"White"], 
+             "Asian"         = tb[,'STEM',"Asian"], 
+             "Black"         = tb[,'STEM',"Black"], 
+             "Hispanic"      = tb[,'STEM',"Hispanic/Latinx"],
+             "International" = tb[,'STEM',"International"])
+tb3 <- as.data.frame(tb2)
+tb3 <- rownames_to_column(tb3, var = "outmajor")
+# plot bar graph
+tb3 %>% filter(outmajor =="STEM") %>% 
+  pivot_longer(cols = c('White', 'Asian', 'Black', 'Hispanic', 'International'), 
+               names_to = "race", values_to = "Proportion") %>%   
+  ggplot(aes(x=race, y=Proportion, fill=race)) +
+  geom_bar(stat = "identity", alpha=.8)  +
+  labs(title = "Proportion of STEM Students Graduating in STEM",
+       subtitle = "By Race/Citizenship",
+       x = "Race/Citizenship") +
+  scale_fill_brewer(palette = "Set1") +
+  theme_clean() +
+  coord_cartesian(ylim = c(0.6, 0.85))
+```
+
+## Major Migration by Race/Citizenship: All Year Aggregated
+
+```{r}
+# plot bar graph based on data tb3 created above
+tb3 %>% filter(outmajor !="STEM") %>% 
+  pivot_longer(cols = c('White', 'Asian', 'Black', 'Hispanic', 'International'), 
+               names_to = "race", values_to = "Proportion") %>% arrange(race, outmajor) %>% 
+  ggplot(aes(x=outmajor, y=Proportion, fill=race)) +
+  geom_bar(position = 'dodge', stat = "identity", alpha=.8)  +
+  labs(title = "Proportion of STEM Students Migrating to Other Majors",
+       subtitle = "By Race/Citizenship",
+       x = "Destination Major") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_clean() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+## Students matriculated in Social Sciences: By Year Animation
+
+### 1989 - 2010
+
+```{r}
+ssmajor <- major %>% filter(entermajor5 == "Social Sciences")   
+sstb <- xtabs(~ outmajor5 + entermajor5 + race + year_begin, data = ssmajor)
+sstb <- as.data.frame(prop.table(sstb, margin = c(2,3,4)))
+sstb$year_begin <- as.integer(as.character(sstb$year_begin))
+
+animp <- sstb %>% filter( outmajor5 != "Social Sciences" & !(race %in% c("Native American", "Other/Unknown"))) %>% 
+  filter(year_begin<2011 & year_begin>1988) %>% 
+  rename(`Major at Graduation` = outmajor5) %>% 
+  ggplot(aes(x=race, y=Freq, fill=`Major at Graduation`)) +
+  geom_bar(stat = "identity", alpha=.8)  +
+  labs(title = "Proportion of Social Science Students Switching to Other Majors: {closest_state}",
+       subtitle = "By Race/Citizenship",
+       x = "Race/Citizenship") +
+  scale_fill_brewer(palette = "Set2") +
+  transition_states(year_begin, transition_length = 2, state_length = 2) +
+  enter_fade()  
+
+animate(animp, fps = 30, duration = 30)
+```
+
+## To be continued...

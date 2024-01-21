@@ -28,7 +28,7 @@ library(ggthemes)
 library(gifski)
 
 # A connection data frame is a list of flows with intensity for each flow
-major <- read_csv("Data/R/major_in_out.csv")
+major <- read_csv("../Data/R/major_in_out.csv")
 major <- setDT(major)
 major$mjchange <- ifelse(major$entermajor==major$outmajor, "No", "Yes")
 ```
@@ -443,6 +443,43 @@ animp <- sstb %>% filter( outmajor5 != "Social Sciences" & !(race %in% c("Native
   enter_fade()  
 
 animate(animp, fps = 30, duration = 30)
+```
+
+## Social Science Major Retention by Race/Citizenship: All Year Aggregated
+
+```{r}
+## Students matriculated in Social Sciences 
+ssmajor <- major %>% filter(entermajor == "Social Sciences")   
+psstb <- as.data.frame(prop.table(xtabs(~ outmajor + race, data = ssmajor), margin = 2))
+
+psstb %>% filter( outmajor != "Social Sciences" ) %>%  
+  rename(`Major at Graduation` = outmajor) %>% 
+  ggplot(aes(x=race, y=Freq, fill=`Major at Graduation`)) +
+  geom_bar(stat = "identity", alpha=.8)  +
+  labs(title = "Proportion of Social Science Students Switching to Other Majors: All Year",
+       subtitle = "By Race/Citizenship",
+       x = "Race/Citizenship") +
+  scale_fill_brewer(palette = "Set2")  +
+  theme_clean() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+## Social Science Major Retention by Race/Citizenship: All Year Aggregated
+
+```{r}
+tb <- prop.table(xtabs(~ outmajor + entermajor + race, data = major), margin = c(2,3)) 
+tb2 <- as.data.frame(tb) 
+# plot bar graph
+tb2 %>% filter(entermajor  =="Social Sciences" & outmajor == "Social Sciences") %>%   
+  ggplot(aes(x=race, y=Freq )) +
+  geom_bar(stat = "identity", alpha=.8)  +
+  labs(title = "Proportion of Social Science Students Graduating in Social Science",
+       subtitle = "By Race/Citizenship",
+       x = "Race/Citizenship") +
+  scale_fill_brewer(palette = "Set1") +
+  theme_clean() +
+  coord_cartesian(ylim = c(0.75, 0.85)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 ```
 
 ## To be continued...

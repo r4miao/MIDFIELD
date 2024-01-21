@@ -1,8 +1,14 @@
 ---
+#OPML (Outline Processor Markup Language) 
 title: "The MIDFIELD Exploratory Analysis Summary"
 author: "Miao Li"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-format: html
+toc: true
+format: 
+  html:
+    self-contained: true
+    output-file: "index"
+    output-ext:  "html"
 editor: visual
 execute: 
   echo: FALSE

@@ -14,7 +14,7 @@ execute:
   echo: FALSE
 ---
 
-## 
+For how majors were coded, please visit this [page](majors/major_definition.html) for detailed documentation.
 
 ```{r }
 #| message: FALSE

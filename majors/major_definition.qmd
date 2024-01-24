@@ -1,0 +1,124 @@
+---
+title: "Major Definition"
+author: "Miao Li"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+#toc: true
+format: 
+  html:
+    self-contained: true
+    #output-file: "majors/major_definition"
+    #output-ext:  "html"
+tbl-colwidths: [15, 75, 25]
+editor: visual
+execute: 
+  echo: FALSE
+  message: FALSE
+  warning: false
+---
+
+## This file documents how majors were coded for the MIDFIELD data.
+
+```{r read_data, message=FALSE, warning=FALSE}
+library(data.table)
+library(readr)
+library(tidyverse)
+library(knitr)
+
+major <- read_csv("D:/OneDrive - Clemson University/My Grant Project/Clemson_projects/MIDFIELD/Data/R/major_in_out.csv")
+major <- setDT(major)
+cip2name <- unique(major[,.(CIP2matri, CIP2matriName)][order(CIP2matri)])
+cip4name <- unique(major[,.(CIP4matri, CIP4matriName)][order(CIP4matri)])
+
+```
+
+## STEM
+
+The following majors were coded as STEM majors:
+
+```{r STEM}
+stemmajorct <- major %>% filter(CIP2matri %chin% c("11", "14", "15", "25", "26", "27", "40", "41")) %>% 
+  count(CIP4matri)
+stemcode <- cip4name[stemmajorct, on=c('CIP4matri')]
+names(stemcode) <- c('CIP4', 'CIP4Name', 'Count')
+kable(stemcode, caption = 'STEM Majors')  
+```
+
+## Social Sciences [^1]
+
+[^1]: In an alternative coding approach, Economics were grouped together with Business.
+
+The following majors were coded as Social Sciences:
+
+```{r Social_Sciences}
+ssmajorct <- major %>% filter(CIP2matri %chin% c("09", "13", "19", "22", "31", "42", "43", "44", "45")) %>% 
+  count(CIP4matri)
+sscode <- cip4name[ssmajorct, on=c('CIP4matri')]
+names(sscode) <- c('CIP4', 'CIP4Name', 'Count')
+kable(sscode, caption = 'Social Science Majors')
+```
+
+## Humanities
+
+The following majors were coded as Humanities:
+
+```{r Humanities}
+hmajorct <- major %>% filter(CIP2matri %chin% c("05", "16", "23", "24", "33", "38", "39", "54")) %>% 
+  count(CIP4matri)
+hcode <- cip4name[hmajorct, on=c('CIP4matri')]
+names(hcode) <- c('CIP4', 'CIP4Name', 'Count')
+kable(hcode, caption = 'Humanities Majors')
+
+```
+
+## Business
+
+The following majors were coded as Business:
+
+```{r Business}
+bct <- major %>% filter(CIP2matri %chin% c("52")) %>% 
+  count(CIP4matri)
+bcode <- cip4name[bct, on=c('CIP4matri')]
+names(bcode) <- c('CIP4', 'CIP4Name', 'Count')
+kable(bcode, caption = 'Business Majors')
+
+```
+
+## Health Professions
+
+The following majors were coded as Health Professions:
+
+```{r Health_Professions}
+ 
+hpct <- major %>% filter(CIP2matri %chin% c("51")) %>% 
+  count(CIP4matri)
+hpcode <- cip4name[hpct, on=c('CIP4matri')]
+names(hpcode) <- c('CIP4', 'CIP4Name', 'Count')
+kable(hpcode, caption = 'Health Professions Majors')
+
+```
+
+## Agriculture
+
+The following majors were coded as Agriculture:
+
+```{r Agriculture}
+agct <- major %>% filter(CIP2matri %chin% c("01", "03")) %>% 
+  count(CIP4matri)
+agcode <- cip4name[agct, on=c('CIP4matri')]
+names(agcode) <- c('CIP4', 'CIP4Name', 'Count')
+kable(agcode, caption = 'Agriculture Majors')
+
+```
+
+## Other
+
+The following majors were coded as Other:
+
+```{r Other}
+otct <- major %>% filter(CIP2matri %chin% c("04", "28", "30", "33", "46", "47", "48", "49", "50")) %>% 
+  count(CIP4matri)
+otcode <- cip4name[otct, on=c('CIP4matri')]
+names(otcode) <- c('CIP4', 'CIP4Name', 'Count')
+kable(otcode, caption = 'Other Majors')
+
+```

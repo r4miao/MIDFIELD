@@ -16,7 +16,8 @@ execute:
   warning: false
 ---
 
-## This file documents how majors were coded for the MIDFIELD data.
+### This file documents how majors were coded for the MIDFIELD data.
+### All Tables were sorted by frequencies. 
 
 ```{r read_data, message=FALSE, warning=FALSE}
 library(data.table)
@@ -38,7 +39,7 @@ The following majors were coded as STEM majors:
 ```{r STEM}
 stemmajorct <- major %>% filter(CIP2matri %chin% c("11", "14", "15", "25", "26", "27", "40", "41")) %>% 
   count(CIP4matri)
-stemcode <- cip4name[stemmajorct, on=c('CIP4matri')]
+stemcode <- cip4name[stemmajorct, on=c('CIP4matri')][order(-n)]
 names(stemcode) <- c('CIP4', 'CIP4Name', 'Count')
 kable(stemcode, caption = 'STEM Majors')  
 ```
@@ -52,7 +53,7 @@ The following majors were coded as Social Sciences:
 ```{r Social_Sciences}
 ssmajorct <- major %>% filter(CIP2matri %chin% c("09", "13", "19", "22", "31", "42", "43", "44", "45")) %>% 
   count(CIP4matri)
-sscode <- cip4name[ssmajorct, on=c('CIP4matri')]
+sscode <- cip4name[ssmajorct, on=c('CIP4matri')][order(-n)]
 names(sscode) <- c('CIP4', 'CIP4Name', 'Count')
 kable(sscode, caption = 'Social Science Majors')
 ```
@@ -64,7 +65,7 @@ The following majors were coded as Humanities:
 ```{r Humanities}
 hmajorct <- major %>% filter(CIP2matri %chin% c("05", "16", "23", "24", "33", "38", "39", "54")) %>% 
   count(CIP4matri)
-hcode <- cip4name[hmajorct, on=c('CIP4matri')]
+hcode <- cip4name[hmajorct, on=c('CIP4matri')][order(-n)]
 names(hcode) <- c('CIP4', 'CIP4Name', 'Count')
 kable(hcode, caption = 'Humanities Majors')
 
@@ -77,7 +78,7 @@ The following majors were coded as Business:
 ```{r Business}
 bct <- major %>% filter(CIP2matri %chin% c("52")) %>% 
   count(CIP4matri)
-bcode <- cip4name[bct, on=c('CIP4matri')]
+bcode <- cip4name[bct, on=c('CIP4matri')][order(-n)]
 names(bcode) <- c('CIP4', 'CIP4Name', 'Count')
 kable(bcode, caption = 'Business Majors')
 
@@ -91,7 +92,7 @@ The following majors were coded as Health Professions:
  
 hpct <- major %>% filter(CIP2matri %chin% c("51")) %>% 
   count(CIP4matri)
-hpcode <- cip4name[hpct, on=c('CIP4matri')]
+hpcode <- cip4name[hpct, on=c('CIP4matri')][order(-n)]
 names(hpcode) <- c('CIP4', 'CIP4Name', 'Count')
 kable(hpcode, caption = 'Health Professions Majors')
 
@@ -104,7 +105,7 @@ The following majors were coded as Agriculture:
 ```{r Agriculture}
 agct <- major %>% filter(CIP2matri %chin% c("01", "03")) %>% 
   count(CIP4matri)
-agcode <- cip4name[agct, on=c('CIP4matri')]
+agcode <- cip4name[agct, on=c('CIP4matri')][order(-n)]
 names(agcode) <- c('CIP4', 'CIP4Name', 'Count')
 kable(agcode, caption = 'Agriculture Majors')
 
@@ -117,7 +118,7 @@ The following majors were coded as Other:
 ```{r Other}
 otct <- major %>% filter(CIP2matri %chin% c("04", "28", "30", "33", "46", "47", "48", "49", "50")) %>% 
   count(CIP4matri)
-otcode <- cip4name[otct, on=c('CIP4matri')]
+otcode <- cip4name[otct, on=c('CIP4matri')][order(-n)]
 names(otcode) <- c('CIP4', 'CIP4Name', 'Count')
 kable(otcode, caption = 'Other Majors')
 
